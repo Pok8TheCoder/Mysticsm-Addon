@@ -470,8 +470,8 @@ public final class GoldLuckHandler {
             return;
         }
 
-        // Candidate overflow slots: N = floor(E / 2) if E > 10, else N = E
-        int candidateCount = (totalEmpty > 10) ? (totalEmpty / 2) : totalEmpty;
+        // Candidate overflow slots: N = floor(E / 1.5) rounded down
+        int candidateCount = Math.min(totalEmpty, Math.max(1, (int) Math.floor(totalEmpty / 1.5)));
         Collections.shuffle(emptySlots, new Random(player.getRandom().nextLong()));
         List<Integer> candidateSlots = new ArrayList<>(emptySlots.subList(0, candidateCount));
 

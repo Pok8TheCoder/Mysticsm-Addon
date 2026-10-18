@@ -79,7 +79,7 @@ For in-depth breakdowns of each skill, mode mechanics, EP costs, evolution trees
   - **Chest Loot Slot Overflow & Same-Odds Drop-Hit System**:
     - Triggers on unlooted structure chests (fully compatible with Lootr).
     - Normal loot unpacks first (no common loot lost).
-    - Candidate overflow slots $N = \lfloor E / 2 \rfloor$ if $E > 10$, else $N = E$.
+    - Candidate overflow slots $N = \lfloor E / 1.5 \rfloor$ (rounded down).
     - 2-second alignment timer with `✦ Otherworldly: Aligning Fates..... ✦` placeholders.
     - Scans loot table items with baseline drop rate $< 25\%$ (+15% boosted probability).
     - **Same-Odds Drop-Hit Tier Method**: If multiple items share the exact same drop probability (e.g. Diamond at 2.5% and Emerald at 2.5%, or up to 10 items), they are grouped into an equal-probability tier. Each hit rolls an RNG pick from the remaining pool and removes it. The next hit in that tier is guaranteed to drop the remaining item(s). When all items in the tier have dropped, the pool refills and resets RNG.

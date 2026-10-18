@@ -94,7 +94,7 @@ To evolve and acquire Ultimate skills through the natural progression system, th
        - **Chest Loot "Slot Overflow" & Same-Odds Drop-Hit System**:
          - Triggers upon opening an unlooted structure chest (fully compatible with Lootr instanced containers).
          - Normal chest loot unpacks first (no common loot lost).
-         - Evaluates empty slots $E$: candidate overflow slots $N = \lfloor E / 2 \rfloor$ if $E > 10$, else $N = E$.
+         - Evaluates empty slots $E$: candidate overflow slots $N = \lfloor E / 1.5 \rfloor$ (rounded down).
          - Displays a 2-second alignment state with locked `✦ Otherworldly: Aligning Fates..... ✦` placeholders to prevent dupe/pickup exploits.
          - Scans loot table items with baseline drop rate $< 25\%$, boosting drop chance by **+15%**.
          - **Same-Odds Drop-Hit Tier Method**: If multiple items share the exact same drop probability (e.g. Diamond at 2.5% and Emerald at 2.5%, or up to 10 items with equal odds), they are grouped into an equal-probability tier. Each hit rolls an RNG pick from the remaining pool and removes it. The next hit in that tier is guaranteed to drop the remaining item(s). When the tier is exhausted, it refills and repeats, ensuring perfectly fair, non-starving distribution across all slots.
