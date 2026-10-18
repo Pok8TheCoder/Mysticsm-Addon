@@ -41,4 +41,34 @@ public abstract class DwarfEntityMixin {
             }
         }
     }
+
+    @Inject(method = "updateSpecialPrices", at = @At("RETURN"), remap = false)
+    private void mysticism$preventUpcharge(net.minecraft.world.entity.player.Player player, CallbackInfo ci) {
+        mysticism$preventMerchantUpcharge((DwarfEntity) (Object) this);
+    }
+
+    @Inject(method = "rewardTradeXp", at = @At("RETURN"), remap = false)
+    private void mysticism$preventUpchargeAfterTrade(net.minecraft.world.item.trading.MerchantOffer offer, CallbackInfo ci) {
+        mysticism$preventMerchantUpcharge((DwarfEntity) (Object) this);
+    }
+
+    private static void mysticism$preventMerchantUpcharge(DwarfEntity dwarf) {
+        if (dwarf == null || !dwarf.getTags().contains("OLucked")) {
+            return;
+        }
+        for (net.minecraft.world.item.trading.MerchantOffer offer : dwarf.getOffers()) {
+            // Can never upcharge (specialPriceDiff > 0), but can still low charge (specialPriceDiff < 0)
+            if (offer.getSpecialPriceDiff() > 0) {
+                offer.setSpecialPriceDiff(0);
+            }
+            // Can never build positive demand from higher sale patterns
+            if (offer.getDemand() > 0) {
+                try {
+                    java.lang.reflect.Field f = net.minecraft.world.item.trading.MerchantOffer.class.getDeclaredField("demand");
+                    f.setAccessible(true);
+                    f.setInt(offer, 0);
+                } catch (Throwable ignored) {}
+            }
+        }
+    }
 }

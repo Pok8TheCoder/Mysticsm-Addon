@@ -54,7 +54,7 @@ public class OtherworldlySkill extends Skill {
     public String getModeId(ManasSkillInstance instance, int mode) {
         return switch (Math.floorMod(mode, getModes(instance))) {
             case 1 -> "otherworldly.closed_loop";
-            case 2 -> "otherworldly.gold_luck";
+            case 2 -> "otherworldly.beyond_odds";
             default -> "otherworldly.shared_secrets";
         };
     }
@@ -231,7 +231,7 @@ public class OtherworldlySkill extends Skill {
 
         int activeMode = Math.floorMod(mode, getModes(instance));
         if (activeMode == 2) {
-            castGoldLuck(player, instance);
+            castBeyondOdds(player, instance);
             return;
         }
 
@@ -253,7 +253,7 @@ public class OtherworldlySkill extends Skill {
         }
     }
 
-    private void castGoldLuck(ServerPlayer player, ManasSkillInstance instance) {
+    private void castBeyondOdds(ServerPlayer player, ManasSkillInstance instance) {
         int points = instance.getTag().getInt("gold_luck_learn_points");
         if (points < 100) {
             if (instance.onCoolDown(2)) {

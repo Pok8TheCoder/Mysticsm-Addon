@@ -276,14 +276,17 @@ public final class GoldLuckHandler {
         if (merchant == null) return;
         try {
             for (MerchantOffer offer : merchant.getOffers()) {
-                offer.resetSpecialPriceDiff();
-                // Set buy price to minimum possible (1)
+                // Set buy price to minimum possible (1) via discount (low charge)
                 int baseCount = offer.getBaseCostA().getCount();
                 if (baseCount > 1) {
                     offer.setSpecialPriceDiff(-baseCount + 1);
+                } else if (offer.getSpecialPriceDiff() > 0) {
+                    offer.setSpecialPriceDiff(0); // Never upcharge
                 }
-                // Set demand to 0
-                setField(offer, "demand", 0);
+                // Demand can never be positive (prevents upcharging from sales patterns)
+                if (offer.getDemand() > 0) {
+                    setField(offer, "demand", 0);
+                }
                 // Set max uses high (32)
                 if (offer.getMaxUses() < 32) {
                     setField(offer, "maxUses", 32);

@@ -67,15 +67,15 @@ For in-depth breakdowns of each skill, mode mechanics, EP costs, evolution trees
   5. Labyrinth (`tensura:labyrinth`)
   *If unvisited realms remain, the ability is canceled with a 10s cooldown and displays the missing dimensions.*
 - **Closed Loop**: Binds a temporary skill into a permanent learned skill (requires mastery, 24m cooldown).
-- **Mode 3: Gold Luck (`otherworldly.gold_luck`)**:
+- **Mode 3: Beyond Odds (`otherworldly.beyond_odds`)**:
   - **Learning Mechanic**: Requires **100 Learn Points** (20 attempts total, +5 points per attempt, 10s cooldown). Once learned, toggling has **zero cooldown**.
-  - **Effect**: Grants custom `mysticism_ultimates:gold_luck` with an 18×18 golden-shaded Luck icon.
+  - **Effect**: Grants custom `mysticism_ultimates:gold_luck` named **Beyond Odds** with an 18×18 golden-shaded Luck icon.
   - **Virtual Fortune V**: +1 to +5 bonus items on ores and fortune-sensitive block breaks (stacks with weapon's Fortune).
   - **Foliage Drop Boost**: 5× to 10× higher drop rate for natural saplings and apples (no golden apples or nuggets).
   - **Virtual Looting V**: +1 to +5 bonus yield per mob drop (stacks with weapon's Looting).
   - **Golden Evasion**: 25% flat chance to completely negate incoming damage (5s internal cooldown, golden particles, amethyst chime).
   - **Plunder / Skill Steal Boost**: Flat **+25%** success rate boost when using Usurper, Great Sage, or Predator/Gluttony.
-  - **Dwarf & Villager Job / Trade Optimization (`OLucked` Tag)**: Merchants marked with `OLucked` roll lowest buy cost (1), highest sell yield, 32 max uses, and 0 demand.
+  - **Dwarf & Villager Job / Trade Optimization & Anti-Upcharge (`OLucked` Tag)**: Merchants marked with `OLucked` roll lowest buy cost (1), highest sell yield, 32 max uses, and 0 demand. Tagged dwarfs can **never upcharge** (demand spikes and negative reputation penalties are completely blocked from raising prices), while **low charging (discounts) remains fully active**.
   - **Chest Loot Slot Overflow & Same-Odds Drop-Hit System**:
     - Triggers on unlooted structure chests (fully compatible with Lootr).
     - Normal loot unpacks first (no common loot lost).
