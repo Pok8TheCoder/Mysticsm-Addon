@@ -75,11 +75,15 @@ For in-depth breakdowns of each skill, mode mechanics, EP costs, evolution trees
   - **Virtual Looting V**: +1 to +5 bonus yield per mob drop (stacks with weapon's Looting).
   - **Golden Evasion**: 25% flat chance to completely negate incoming damage (5s internal cooldown, golden particles, amethyst chime).
   - **Plunder / Skill Steal Boost**: Flat **+25%** success rate boost when using Usurper, Great Sage, or Predator/Gluttony.
-  - **Dwarf & Villager Job / Trade Optimization & Anti-Upcharge (`OLucked` Tag)**: Merchants marked with `OLucked` roll lowest buy cost (1), highest sell yield, 32 max uses, and 0 demand. Tagged dwarfs can **never upcharge** (demand spikes and negative reputation penalties are completely blocked from raising prices), while **low charging (discounts) remains fully active**.
+  - **Dwarf & Villager Job / Trade Optimization & Anti-Upcharge (`OLucked` Tag)**:
+    - Tagged merchants can **never upcharge** (demand spikes and negative reputation penalties can never raise prices above base).
+    - **Low Charge / Discount Cap**: Merchants cannot low-charge (discount) by more than **2 quantity** below regular base price (e.g. 8 magic ore for 2 gold coins drops to at most 6 magic ore; base prices of 1 or 2 can still reach 1).
+    - Offers roll 32 max uses and never run out of stock.
+    - **Artifacts Villager Hat Integration**: Bridges Artifacts mod's Villager Hat (`artifacts:villager_reputation`) directly into Tensura Dwarfs.
   - **Chest Loot Slot Overflow & Same-Odds Drop-Hit System**:
     - Triggers on unlooted structure chests (fully compatible with Lootr).
     - Normal loot unpacks first (no common loot lost).
-    - Candidate overflow slots $N = \lfloor E / 1.5 \rfloor$ (rounded down).
+    - Candidate overflow slots $N = \lceil E / 1.5 \rceil$ (rounded up).
     - 2-second alignment timer with `✦ Otherworldly: Aligning Fates..... ✦` placeholders.
     - Scans loot table items with baseline drop rate $< 25\%$ (+15% boosted probability).
     - **Same-Odds Drop-Hit Tier Method**: If multiple items share the exact same drop probability (e.g. Diamond at 2.5% and Emerald at 2.5%, or up to 10 items), they are grouped into an equal-probability tier. Each hit rolls an RNG pick from the remaining pool and removes it. The next hit in that tier is guaranteed to drop the remaining item(s). When all items in the tier have dropped, the pool refills and resets RNG.

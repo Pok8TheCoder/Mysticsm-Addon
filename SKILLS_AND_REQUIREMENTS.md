@@ -87,14 +87,19 @@ To evolve and acquire Ultimate skills through the natural progression system, th
        - **Virtual Looting V**: Applied to all mob kills, granting +1 to +5 bonus yield per drop (stacks with weapon's Looting enchant).
        - **Golden Evasion**: 25% flat chance to completely negate incoming damage with a 5-second internal cooldown, burst of golden particles, and resonant amethyst chime.
        - **Plunder & Skill Steal Odds Boost**: Boosts Usurper, Great Sage, and Predator/Gluttony copy/devour success chances by a flat **+25%** (capped at 100%).
-       - **Dwarf & Villager Trade Maximizer & Anti-Upcharge (`OLucked` Tag)**:
-         - Merchants born, employed, or interacted with near Beyond Odds receive the `"OLucked"` tag.
-         - Initial trades roll the lowest buy cost (1 item), highest sell yield, 32 max uses, and 0 demand.
-         - **Strict Anti-Upcharge Enforcement**: Tagged dwarfs can **never upcharge** the player under any circumstance (higher sales volume, demand spikes, and negative reputation penalties can never raise prices above base). However, **low charging (discounts, Hero of the Village, and special discounts) remains completely active and functional**.
-       - **Chest Loot "Slot Overflow" & Same-Odds Drop-Hit System**:
-         - Triggers upon opening an unlooted structure chest (fully compatible with Lootr instanced containers).
-         - Normal chest loot unpacks first (no common loot lost).
-         - Evaluates empty slots $E$: candidate overflow slots $N = \lfloor E / 1.5 \rfloor$ (rounded down).
+        - **Dwarf & Villager Trade Optimization & Anti-Upcharge (`OLucked` Tag)**:
+          - Merchants born, employed, or interacted with near Beyond Odds receive the "OLucked" tag.
+          - **Strict Anti-Upcharge & Low-Charge Cap**:
+            - Tagged merchants can **never upcharge** under any circumstance (higher sales volume, demand spikes, and negative reputation penalties can never raise prices above base).
+            - **Low Charge / Discount Cap**: Merchants cannot low-charge (discount) by more than **2 quantity** below the regular minimum cost. If an item base cost is 2, it drops by 1 to 1 (true lowest, does not cap above 1); if an item base cost is 1, it stays 1. (e.g. 8 magic ore for 2 gold coins can at most drop to 6 magic ore; base prices of 1 or 2 can still reach 1).
+            - Trades roll 32 max uses and never run out of stock.
+          - **Artifacts Villager Hat Compatibility for Dwarfs**:
+            - By default, Artifacts' Villager Hat (`artifacts:villager_reputation`) only targets vanilla `Villager.getPlayerReputation(Player)` and ignores Tensura Dwarfs.
+            - Mysticism Ultimates bridges this attribute directly into `DwarfEntity.updateSpecialPrices`, granting Dwarfs the full Villager Hat reputation discount scaled to Tensura's reputation discount rate!
+        - **Chest Loot "Slot Overflow" & Same-Odds Drop-Hit System**:
+          - Triggers upon opening an unlooted structure chest (fully compatible with Lootr instanced containers).
+          - Normal chest loot unpacks first (no common loot lost).
+          - Evaluates empty slots $E$: candidate overflow slots $N = \lceil E / 1.5 \rceil$ (rounded up).
          - Displays a 2-second alignment state with locked `✦ Otherworldly: Aligning Fates..... ✦` placeholders to prevent dupe/pickup exploits.
          - Scans loot table items with baseline drop rate $< 25\%$, boosting drop chance by **+15%**.
          - **Same-Odds Drop-Hit Tier Method**: If multiple items share the exact same drop probability (e.g. Diamond at 2.5% and Emerald at 2.5%, or up to 10 items with equal odds), they are grouped into an equal-probability tier. Each hit rolls an RNG pick from the remaining pool and removes it. The next hit in that tier is guaranteed to drop the remaining item(s). When the tier is exhausted, it refills and repeats, ensuring perfectly fair, non-starving distribution across all slots.

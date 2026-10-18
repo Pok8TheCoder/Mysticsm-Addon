@@ -320,27 +320,20 @@ public final class GoldLuckHandler {
         if (merchant == null) return;
         try {
             for (MerchantOffer offer : merchant.getOffers()) {
-                // Set buy price to minimum possible (1) via discount (low charge)
+                // Low charge cannot exceed 2 quantity of the regular min (if base is 1 or 2, lowest can reach 1)
                 int baseCount = offer.getBaseCostA().getCount();
-                if (baseCount > 1) {
-                    offer.setSpecialPriceDiff(-baseCount + 1);
-                } else if (offer.getSpecialPriceDiff() > 0) {
-                    offer.setSpecialPriceDiff(0); // Never upcharge
-                }
+                int maxDiscount = Math.min(2, Math.max(0, baseCount - 1));
+                offer.setSpecialPriceDiff(-maxDiscount);
+
                 // Demand can never be positive (prevents upcharging from sales patterns)
                 if (offer.getDemand() > 0) {
                     setField(offer, "demand", 0);
                 }
-                // Set max uses high (32)
+                // Set max uses high (32) and reset used count
                 if (offer.getMaxUses() < 32) {
                     setField(offer, "maxUses", 32);
                 }
-                // Boost sell yield to maximum possible
-                ItemStack result = offer.getResult();
-                if (result.isStackable() && result.getMaxStackSize() > 1 && result.getCount() < result.getMaxStackSize()) {
-                    int boosted = Math.min(result.getMaxStackSize(), Math.max(result.getCount() * 2, 8));
-                    result.setCount(boosted);
-                }
+                offer.resetUses();
             }
         } catch (Throwable ignored) {}
     }
@@ -470,8 +463,8 @@ public final class GoldLuckHandler {
             return;
         }
 
-        // Candidate overflow slots: N = floor(E / 1.5) rounded down
-        int candidateCount = Math.min(totalEmpty, Math.max(1, (int) Math.floor(totalEmpty / 1.5)));
+        // Candidate overflow slots: N = ceil(E / 1.5) rounded up
+        int candidateCount = Math.min(totalEmpty, (int) Math.ceil(totalEmpty / 1.5));
         Collections.shuffle(emptySlots, new Random(player.getRandom().nextLong()));
         List<Integer> candidateSlots = new ArrayList<>(emptySlots.subList(0, candidateCount));
 

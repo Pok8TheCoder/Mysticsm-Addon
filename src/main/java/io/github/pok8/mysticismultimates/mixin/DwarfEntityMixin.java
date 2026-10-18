@@ -44,7 +44,9 @@ public abstract class DwarfEntityMixin {
 
     @Inject(method = "updateSpecialPrices", at = @At("RETURN"), remap = false)
     private void mysticism$preventUpcharge(net.minecraft.world.entity.player.Player player, CallbackInfo ci) {
-        mysticism$preventMerchantUpcharge((DwarfEntity) (Object) this);
+        DwarfEntity dwarf = (DwarfEntity) (Object) this;
+        mysticism$applyVillagerHat(dwarf, player);
+        mysticism$preventMerchantUpcharge(dwarf);
     }
 
     @Inject(method = "rewardTradeXp", at = @At("RETURN"), remap = false)
@@ -52,23 +54,38 @@ public abstract class DwarfEntityMixin {
         mysticism$preventMerchantUpcharge((DwarfEntity) (Object) this);
     }
 
-    private static void mysticism$preventMerchantUpcharge(DwarfEntity dwarf) {
-        if (dwarf == null || !dwarf.getTags().contains("OLucked")) {
+    private static void mysticism$applyVillagerHat(DwarfEntity dwarf, net.minecraft.world.entity.player.Player player) {
+        if (dwarf == null || player == null || dwarf.getOffers() == null) {
             return;
         }
-        for (net.minecraft.world.item.trading.MerchantOffer offer : dwarf.getOffers()) {
-            // Can never upcharge (specialPriceDiff > 0), but can still low charge (specialPriceDiff < 0)
-            if (offer.getSpecialPriceDiff() > 0) {
-                offer.setSpecialPriceDiff(0);
+        try {
+            var holder = net.minecraft.core.registries.BuiltInRegistries.ATTRIBUTE
+                    .getHolder(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("artifacts", "villager_reputation"));
+            if (holder.isPresent()) {
+                var instance = player.getAttribute(holder.get());
+                if (instance != null) {
+                    double bonus = instance.getValue();
+                    if (bonus > 0.0) {
+                        double discountPct = DwarfEntity.REPUTATION_CONFIG != null ? DwarfEntity.REPUTATION_CONFIG.discountPercentage : 0.005;
+                        double factor = bonus * discountPct;
+                        for (net.minecraft.world.item.trading.MerchantOffer offer : dwarf.getOffers()) {
+                            if (offer.getPriceMultiplier() > 0.0f) {
+                                int discount = (int) Math.floor(factor * offer.getBaseCostA().getCount());
+                                if (discount > 0) {
+                                    offer.addToSpecialPriceDiff(-discount);
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            // Can never build positive demand from higher sale patterns
-            if (offer.getDemand() > 0) {
-                try {
-                    java.lang.reflect.Field f = net.minecraft.world.item.trading.MerchantOffer.class.getDeclaredField("demand");
-                    f.setAccessible(true);
-                    f.setInt(offer, 0);
-                } catch (Throwable ignored) {}
-            }
+        } catch (Throwable ignored) {}
+    }
+
+    private static void mysticism$preventMerchantUpcharge(DwarfEntity dwarf) {
+        if (dwarf == null || !dwarf.getTags().contains("OLucked") || dwarf.getOffers() == null) {
+            return;
         }
+        io.github.pok8.mysticismultimates.skill.GoldLuckHandler.optimizeMerchant(dwarf);
     }
 }

@@ -12,6 +12,7 @@
     "ServerCommonPacketListenerImplMixin",
     "LevelMixin",
     "DwarfEntityMixin",
+    "VillagerMixin",
     "UsurperSkillMixin",
     "GreatSageSkillMixin"
   ],
