@@ -24,7 +24,8 @@ $cp = @(
     "$nested\manascore-network-neoforge-4.0.0.2.jar",
     "$nested\manascore-attribute-neoforge-4.0.0.2.jar",
     "$nested\manascore-race-neoforge-4.0.0.2.jar",
-    "$nested\manascore-config-neoforge-4.0.0.2.jar"
+    "$nested\manascore-config-neoforge-4.0.0.2.jar",
+    "C:\Users\pok8p\AppData\Roaming\PrismLauncher\libraries\it\unimi\dsi\fastutil\8.5.18\fastutil-8.5.18.jar"
 ) -join ";"
 $classes = Join-Path $root "build\classes"
 $jar = Join-Path $root "build\mysticism-ultimates-0.1.0.jar"

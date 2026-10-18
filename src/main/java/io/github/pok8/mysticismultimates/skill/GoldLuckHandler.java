@@ -22,6 +22,11 @@ import net.minecraft.world.Container;
 import net.minecraft.world.RandomizableContainer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
+import com.mojang.datafixers.util.Pair;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.npc.VillagerTrades;
+import net.minecraft.world.item.trading.ItemCost;
+import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.entity.npc.AbstractVillager;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.inventory.Slot;
@@ -319,6 +324,10 @@ public final class GoldLuckHandler {
     public static void optimizeMerchant(Merchant merchant) {
         if (merchant == null) return;
         try {
+            if (merchant instanceof DwarfEntity dwarf) {
+                optimizeDwarfOffers(dwarf);
+            }
+
             for (MerchantOffer offer : merchant.getOffers()) {
                 // Low charge cannot exceed 2 quantity of the regular min (if base is 1 or 2, lowest can reach 1)
                 int baseCount = offer.getBaseCostA().getCount();
@@ -335,15 +344,159 @@ public final class GoldLuckHandler {
                 }
                 offer.resetUses();
             }
+
+            if (merchant instanceof DwarfEntity dwarf) {
+                resendDwarfOffers(dwarf);
+            }
         } catch (Throwable ignored) {}
     }
 
-    private static void setField(Object obj, String fieldName, Object val) {
+    @SuppressWarnings("unchecked")
+    private static void optimizeDwarfOffers(DwarfEntity dwarf) {
+        if (dwarf == null || dwarf.getOffers() == null) return;
+        var possibleTrades = dwarf.getPossibleTrades();
+        if (possibleTrades == null) return;
+
+        List<VillagerTrades.ItemListing> allListings = new ArrayList<>();
+        for (VillagerTrades.ItemListing[] arr : possibleTrades.values()) {
+            if (arr != null) {
+                Collections.addAll(allListings, arr);
+            }
+        }
+
+        for (MerchantOffer offer : dwarf.getOffers()) {
+            Item offerInputItem = offer.getBaseCostA().getItem();
+            Item offerResultItem = offer.getResult().getItem();
+
+            for (VillagerTrades.ItemListing listing : allListings) {
+                if (matchesListing(listing, offerInputItem, offerResultItem)) {
+                    Pair<Integer, Integer> inCount = getFieldValue(listing, "inputCount");
+                    Pair<Integer, Integer> outCount = getFieldValue(listing, "outputCount");
+
+                    if (inCount != null && inCount.getFirst() != null) {
+                        int minInput = inCount.getFirst();
+                        if (minInput > 0 && offer.getBaseCostA().getCount() > minInput) {
+                            setOfferField(offer, "baseCostA", ItemCost.class, new ItemCost(offerInputItem, minInput));
+                        }
+                    }
+
+                    if (outCount != null && outCount.getSecond() != null) {
+                        int maxOutput = outCount.getSecond();
+                        if (maxOutput > 0 && offer.getResult().getCount() < maxOutput) {
+                            offer.getResult().setCount(maxOutput);
+                        }
+                    }
+
+                    Pair<Integer, Integer> inCountSecond = getFieldValue(listing, "inputCountSecond");
+                    if (inCountSecond != null && inCountSecond.getFirst() != null && offer.getItemCostB().isPresent()) {
+                        int minInputSecond = inCountSecond.getFirst();
+                        Item secondInputItem = offer.getCostB().getItem();
+                        if (minInputSecond > 0 && offer.getCostB().getCount() > minInputSecond) {
+                            setOfferField(offer, "costB", Optional.class, Optional.of(new ItemCost(secondInputItem, minInputSecond)));
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static boolean matchesListing(VillagerTrades.ItemListing listing, Item input, Item result) {
+        if (listing == null) return false;
+        Object inItemObj = getFieldValue(listing, "inputItem");
+        Object outItemObj = getFieldValue(listing, "outputItem");
+
+        boolean inMatches = false;
+        if (inItemObj instanceof ItemLike il) {
+            inMatches = (il.asItem() == input);
+        } else if (inItemObj instanceof TagKey<?> tag) {
+            inMatches = input.builtInRegistryHolder().is((TagKey<Item>) tag);
+        }
+
+        boolean outMatches = false;
+        if (outItemObj instanceof ItemStack is) {
+            outMatches = (is.getItem() == result);
+        } else if (outItemObj instanceof ItemLike il) {
+            outMatches = (il.asItem() == result);
+        } else if (outItemObj instanceof TagKey<?> tag) {
+            outMatches = result.builtInRegistryHolder().is((TagKey<Item>) tag);
+        }
+
+        return inMatches && outMatches;
+    }
+
+    private static void resendDwarfOffers(DwarfEntity dwarf) {
         try {
-            Field f = obj.getClass().getDeclaredField(fieldName);
-            f.setAccessible(true);
-            f.set(obj, val);
+            Method m = dwarf.getClass().getMethod("resendOffersToTradingPlayer");
+            m.setAccessible(true);
+            m.invoke(dwarf);
+        } catch (Throwable ignored) {
+            try {
+                Method m2 = dwarf.getClass().getDeclaredMethod("resendOffersToTradingPlayer");
+                m2.setAccessible(true);
+                m2.invoke(dwarf);
+            } catch (Throwable ignored2) {}
+        }
+    }
+
+    private static void setOfferField(MerchantOffer offer, String name, Class<?> type, Object val) {
+        if (offer == null) return;
+        try {
+            Field f = null;
+            try {
+                f = MerchantOffer.class.getDeclaredField(name);
+            } catch (NoSuchFieldException ignored) {}
+
+            if (f == null && type != null) {
+                for (Field field : MerchantOffer.class.getDeclaredFields()) {
+                    if (field.getType() == type) {
+                        f = field;
+                        break;
+                    }
+                }
+            }
+
+            if (f != null) {
+                f.setAccessible(true);
+                f.set(offer, val);
+            }
         } catch (Throwable ignored) {}
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T getFieldValue(Object obj, String fieldName) {
+        if (obj == null) return null;
+        Class<?> clazz = obj.getClass();
+        while (clazz != null) {
+            try {
+                Field f = clazz.getDeclaredField(fieldName);
+                f.setAccessible(true);
+                return (T) f.get(obj);
+            } catch (NoSuchFieldException e) {
+                clazz = clazz.getSuperclass();
+            } catch (Throwable ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static void setField(Object obj, String fieldName, Object val) {
+        if (obj == null) return;
+        Class<?> clazz = obj.getClass();
+        while (clazz != null) {
+            try {
+                Field f = clazz.getDeclaredField(fieldName);
+                f.setAccessible(true);
+                f.set(obj, val);
+                return;
+            } catch (NoSuchFieldException e) {
+                clazz = clazz.getSuperclass();
+            } catch (Throwable ignored) {
+                return;
+            }
+        }
     }
 
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
