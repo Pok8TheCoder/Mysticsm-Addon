@@ -54,6 +54,14 @@ public final class MysticismUltimates {
         NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.TimeSkills::onPlayerLoggedOut);
         NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.TimeSkills::onPlayerChangeDimension);
         NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.OtherworldlySkill::onPlayerChangedDimension);
+        NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.GoldLuckHandler::onLivingIncomingDamage);
+        NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.GoldLuckHandler::onBlockDrops);
+        NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.GoldLuckHandler::onLivingDrops);
+        NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.GoldLuckHandler::onEntityInteract);
+        NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.GoldLuckHandler::onEntityJoinLevel);
+        NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.GoldLuckHandler::onPlayerOpenContainer);
+        NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.GoldLuckHandler::onPlayerCloseContainer);
+        NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.GoldLuckHandler::onServerTick);
         ShadowSpirits.register();
         BeelzebubSkill.register();
         VicielSkill.register();

@@ -62,7 +62,7 @@ To evolve and acquire Ultimate skills through the natural progression system, th
 ---
 
 ### 🌀 Unique Skill: Otherworldly (`mysticism_ultimates:otherworldly`)
-*Transcends dimensional boundaries to bond entities and manipulate positioning.*
+*Transcends dimensional boundaries to bond entities, manipulate positioning, and align cosmic serendipity.*
 - **Skill Type**: `UNIQUE`
 - **Acquisition Cost**: `100,000 Magicules`
 - **Max Mastery**: `1,500`
@@ -78,6 +78,24 @@ To evolve and acquire Ultimate skills through the natural progression system, th
        5. Labyrinth (`tensura:labyrinth`)
      - If any realm has not been visited, the ability remains sealed, alerts the player to missing dimensions, and applies a 10s cooldown rather than the 24-minute cooldown.
   2. **Closed Loop** (`otherworldly.closed_loop`): Binds a temporary skill into a permanent learned skill (requires mastery, 24m cooldown).
+  3. **Gold Luck** (`otherworldly.gold_luck` — *Active Ability & Toggle*):
+     - **Learning System**: Requires **100 Learn Points** to master. Each activation attempt grants **+5 Learn Points** with a standard **10-second cooldown** between attempts (20 attempts total). Once mastered (100 points), toggling has **zero cooldown**!
+     - **Active Toggle**: Bestows the custom `mysticism_ultimates:gold_luck` effect with an 18×18 golden-shaded luck icon.
+     - **Universal Serendipity & Luck Engine**:
+       - **Virtual Fortune V**: Applied to all fortune-affected block breaks and ores, granting +1 to +5 extra items (stacks with tool's Fortune enchant).
+       - **Foliage Boost**: Breaking leaves grants a 5× to 10× higher drop rate for natural saplings and apples (does **not** alter the vanilla loot pool; no golden apples or golden nuggets).
+       - **Virtual Looting V**: Applied to all mob kills, granting +1 to +5 bonus yield per drop (stacks with weapon's Looting enchant).
+       - **Golden Evasion**: 25% flat chance to completely negate incoming damage with a 5-second internal cooldown, burst of golden particles, and resonant amethyst chime.
+       - **Plunder & Skill Steal Odds Boost**: Boosts Usurper, Great Sage, and Predator/Gluttony copy/devour success chances by a flat **+25%** (capped at 100%).
+       - **Dwarf & Villager Trade Maximizer (`OLucked` Tag)**: Merchants born, employed, or interacted with near Gold Luck receive the `"OLucked"` tag. Their trades roll the lowest buy cost (1 item), highest sell yield, 32 max uses, and 0 demand.
+       - **Chest Loot "Slot Overflow" & Same-Odds Drop-Hit System**:
+         - Triggers upon opening an unlooted structure chest (fully compatible with Lootr instanced containers).
+         - Normal chest loot unpacks first (no common loot lost).
+         - Evaluates empty slots $E$: candidate overflow slots $N = \lfloor E / 2 \rfloor$ if $E > 10$, else $N = E$.
+         - Displays a 2-second alignment state with locked `✦ Otherworldly: Aligning Fates..... ✦` placeholders to prevent dupe/pickup exploits.
+         - Scans loot table items with baseline drop rate $< 25\%$, boosting drop chance by **+15%**.
+         - **Same-Odds Drop-Hit Tier Method**: If multiple items share the exact same drop probability (e.g. Diamond at 2.5% and Emerald at 2.5%, or up to 10 items with equal odds), they are grouped into an equal-probability tier. Each hit rolls an RNG pick from the remaining pool and removes it. The next hit in that tier is guaranteed to drop the remaining item(s). When the tier is exhausted, it refills and repeats, ensuring perfectly fair, non-starving distribution across all slots.
+         - Resolves with celebratory chimes, golden particles, and actionbar notice `✦ Otherworldly: Fates Aligned! ✦`.
 
 ---
 

@@ -41,7 +41,7 @@ public class OtherworldlySkill extends Skill {
 
     @Override
     public int getModes(ManasSkillInstance instance) {
-        return 2;
+        return 3;
     }
 
     @Override
@@ -54,6 +54,7 @@ public class OtherworldlySkill extends Skill {
     public String getModeId(ManasSkillInstance instance, int mode) {
         return switch (Math.floorMod(mode, getModes(instance))) {
             case 1 -> "otherworldly.closed_loop";
+            case 2 -> "otherworldly.gold_luck";
             default -> "otherworldly.shared_secrets";
         };
     }
@@ -104,7 +105,17 @@ public class OtherworldlySkill extends Skill {
 
     @Override
     public void onTick(ManasSkillInstance instance, LivingEntity entity) {
-        if (!(entity instanceof ServerPlayer player) || !instance.isToggled()) {
+        if (!(entity instanceof ServerPlayer player)) {
+            return;
+        }
+        // Mode 2: Gold Luck active maintainer
+        if (instance.getTag().getBoolean("gold_luck_active")) {
+            if (!player.hasEffect(io.github.pok8.mysticismultimates.registry.ShadowEffects.GOLD_LUCK)
+                    || player.getEffect(io.github.pok8.mysticismultimates.registry.ShadowEffects.GOLD_LUCK).getDuration() < 100) {
+                player.addEffect(new MobEffectInstance(io.github.pok8.mysticismultimates.registry.ShadowEffects.GOLD_LUCK, 600, 0, false, false, true));
+            }
+        }
+        if (!instance.isToggled()) {
             return;
         }
         // Grant effects with a timer of 30s (600 ticks) and refresh every 5s (100 ticks)
@@ -119,6 +130,7 @@ public class OtherworldlySkill extends Skill {
         if (entity instanceof ServerPlayer player) {
             player.removeEffect(MobEffects.LUCK);
             player.removeEffect(MobEffects.HERO_OF_THE_VILLAGE);
+            player.removeEffect(io.github.pok8.mysticismultimates.registry.ShadowEffects.GOLD_LUCK);
         }
     }
 
@@ -216,7 +228,14 @@ public class OtherworldlySkill extends Skill {
         if (!(entity instanceof ServerPlayer player) || entity.level().isClientSide()) {
             return;
         }
-        // Shared cooldown check across both active abilities
+
+        int activeMode = Math.floorMod(mode, getModes(instance));
+        if (activeMode == 2) {
+            castGoldLuck(player, instance);
+            return;
+        }
+
+        // Shared cooldown check across both active abilities (modes 0 and 1)
         int remaining = Math.max(instance.getCoolDown(0), instance.getCoolDown(1));
         if (remaining > 0 || instance.onCoolDown(0) || instance.onCoolDown(1)) {
             int mins = remaining / 60;
@@ -227,11 +246,68 @@ public class OtherworldlySkill extends Skill {
             return;
         }
 
-        int activeMode = Math.floorMod(mode, getModes(instance));
         if (activeMode == 0) {
             castSharedSecrets(player, instance);
         } else {
             castClosedLoop(player, instance);
+        }
+    }
+
+    private void castGoldLuck(ServerPlayer player, ManasSkillInstance instance) {
+        int points = instance.getTag().getInt("gold_luck_learn_points");
+        if (points < 100) {
+            if (instance.onCoolDown(2)) {
+                int rem = instance.getCoolDown(2);
+                player.displayClientMessage(
+                        Component.translatable("mysticism_ultimates.skill.otherworldly.gold_luck.learning_cooldown", rem)
+                                .withStyle(ChatFormatting.RED), true);
+                return;
+            }
+            points += 5;
+            instance.getTag().putInt("gold_luck_learn_points", points);
+            instance.markDirty();
+
+            if (points < 100) {
+                instance.setCoolDown(10, 2);
+                player.level().playSound(null, player.blockPosition(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 1.0F, 1.2F);
+                if (player.level() instanceof ServerLevel level) {
+                    level.sendParticles(ParticleTypes.ENCHANT, player.getX(), player.getY() + 1.2, player.getZ(), 16, 0.3, 0.4, 0.3, 0.1);
+                }
+                player.displayClientMessage(
+                        Component.translatable("mysticism_ultimates.skill.otherworldly.gold_luck.learning", points, 100)
+                                .withStyle(ChatFormatting.GOLD), true);
+            } else {
+                instance.setCoolDown(0, 2);
+                player.level().playSound(null, player.blockPosition(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0F, 1.0F);
+                player.level().playSound(null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.0F, 1.2F);
+                if (player.level() instanceof ServerLevel level) {
+                    level.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, player.getX(), player.getY() + 1.2, player.getZ(), 30, 0.5, 0.5, 0.5, 0.1);
+                }
+                player.displayClientMessage(
+                        Component.translatable("mysticism_ultimates.skill.otherworldly.gold_luck.mastered")
+                                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
+            }
+        } else {
+            // Mastered: 0 cooldown toggle!
+            boolean active = !instance.getTag().getBoolean("gold_luck_active");
+            instance.getTag().putBoolean("gold_luck_active", active);
+            instance.markDirty();
+            if (active) {
+                player.addEffect(new MobEffectInstance(io.github.pok8.mysticismultimates.registry.ShadowEffects.GOLD_LUCK, 600, 0, false, false, true));
+                player.level().playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.3F);
+                if (player.level() instanceof ServerLevel level) {
+                    level.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1.0, player.getZ(), 16, 0.3, 0.4, 0.3, 0.05);
+                }
+                player.displayClientMessage(
+                        Component.translatable("mysticism_ultimates.skill.otherworldly.gold_luck.activated")
+                                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), true);
+            } else {
+                player.removeEffect(io.github.pok8.mysticismultimates.registry.ShadowEffects.GOLD_LUCK);
+                player.level().playSound(null, player.blockPosition(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.8F, 1.5F);
+                player.displayClientMessage(
+                        Component.translatable("mysticism_ultimates.skill.otherworldly.gold_luck.deactivated")
+                                .withStyle(ChatFormatting.GRAY), true);
+            }
         }
     }
 

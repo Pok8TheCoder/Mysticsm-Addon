@@ -67,6 +67,22 @@ For in-depth breakdowns of each skill, mode mechanics, EP costs, evolution trees
   5. Labyrinth (`tensura:labyrinth`)
   *If unvisited realms remain, the ability is canceled with a 10s cooldown and displays the missing dimensions.*
 - **Closed Loop**: Binds a temporary skill into a permanent learned skill (requires mastery, 24m cooldown).
+- **Mode 3: Gold Luck (`otherworldly.gold_luck`)**:
+  - **Learning Mechanic**: Requires **100 Learn Points** (20 attempts total, +5 points per attempt, 10s cooldown). Once learned, toggling has **zero cooldown**.
+  - **Effect**: Grants custom `mysticism_ultimates:gold_luck` with an 18×18 golden-shaded Luck icon.
+  - **Virtual Fortune V**: +1 to +5 bonus items on ores and fortune-sensitive block breaks (stacks with weapon's Fortune).
+  - **Foliage Drop Boost**: 5× to 10× higher drop rate for natural saplings and apples (no golden apples or nuggets).
+  - **Virtual Looting V**: +1 to +5 bonus yield per mob drop (stacks with weapon's Looting).
+  - **Golden Evasion**: 25% flat chance to completely negate incoming damage (5s internal cooldown, golden particles, amethyst chime).
+  - **Plunder / Skill Steal Boost**: Flat **+25%** success rate boost when using Usurper, Great Sage, or Predator/Gluttony.
+  - **Dwarf & Villager Job / Trade Optimization (`OLucked` Tag)**: Merchants marked with `OLucked` roll lowest buy cost (1), highest sell yield, 32 max uses, and 0 demand.
+  - **Chest Loot Slot Overflow & Same-Odds Drop-Hit System**:
+    - Triggers on unlooted structure chests (fully compatible with Lootr).
+    - Normal loot unpacks first (no common loot lost).
+    - Candidate overflow slots $N = \lfloor E / 2 \rfloor$ if $E > 10$, else $N = E$.
+    - 2-second alignment timer with `✦ Otherworldly: Aligning Fates..... ✦` placeholders.
+    - Scans loot table items with baseline drop rate $< 25\%$ (+15% boosted probability).
+    - **Same-Odds Drop-Hit Tier Method**: If multiple items share the exact same drop probability (e.g. Diamond at 2.5% and Emerald at 2.5%, or up to 10 items), they are grouped into an equal-probability tier. Each hit rolls an RNG pick from the remaining pool and removes it. The next hit in that tier is guaranteed to drop the remaining item(s). When all items in the tier have dropped, the pool refills and resets RNG.
 
 ### 👑 7. Universal Awakening Requirement for All Ultimates
 - **True Demon Lord or True Hero**: **ANY and ALL Ultimate Skills** strictly require the player to be awakened as a **True Demon Lord** (`existence.isTrueDemonLord()`) or a **True Hero** (`existence.isTrueHero()`).

@@ -14,6 +14,7 @@ public final class ShadowEffects {
     public static final DeferredHolder<MobEffect, LunarBoostEffect> LUNAR_BOOST = EFFECTS.register("lunar_boost", LunarBoostEffect::new);
     public static final DeferredHolder<MobEffect, SolarBoostEffect> SOLAR_BOOST = EFFECTS.register("solar_boost", SolarBoostEffect::new);
     public static final DeferredHolder<MobEffect, ShadowGraspEffect> SHADOW_GRASP = EFFECTS.register("shadow_grasp", ShadowGraspEffect::new);
+    public static final DeferredHolder<MobEffect, io.github.pok8.mysticismultimates.effect.GoldLuckEffect> GOLD_LUCK = EFFECTS.register("gold_luck", io.github.pok8.mysticismultimates.effect.GoldLuckEffect::new);
 
     private ShadowEffects() {
     }

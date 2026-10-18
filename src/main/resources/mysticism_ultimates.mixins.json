@@ -11,7 +11,9 @@
     "RequestNamingKeyPacketMixin",
     "ServerCommonPacketListenerImplMixin",
     "LevelMixin",
-    "DwarfEntityMixin"
+    "DwarfEntityMixin",
+    "UsurperSkillMixin",
+    "GreatSageSkillMixin"
   ],
   "client": [
     "ClientLevelMixin"
