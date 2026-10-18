@@ -1,0 +1,64 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "ARR"
+
+[[mods]]
+modId = "mysticism_ultimates"
+version = "0.1.0"
+displayName = "Mysticism Ultimates"
+authors = "pok8"
+description = '''
+Addon that registers the difficult Mysticism 1.1.1 ultimate skills, plus Plunderer and Vainglory, on top of Mysticism 2.2.1.
+'''
+
+[[mixins]]
+config = "mysticism_ultimates.mixins.json"
+
+[[dependencies.mysticism_ultimates]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.mysticism_ultimates]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,1.21.2)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.mysticism_ultimates]]
+modId = "architectury"
+type = "required"
+versionRange = "[13.0.8,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.mysticism_ultimates]]
+modId = "manascore"
+type = "required"
+versionRange = "[4,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.mysticism_ultimates]]
+modId = "tensura"
+type = "required"
+versionRange = "*"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.mysticism_ultimates]]
+modId = "geckolib"
+type = "required"
+versionRange = "[4.7,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.mysticism_ultimates]]
+modId = "mysticism"
+type = "required"
+versionRange = "[2.2,)"
+ordering = "AFTER"
+side = "BOTH"

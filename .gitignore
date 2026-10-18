@@ -1,0 +1,23 @@
+# Build outputs and temporary files
+build/
+bin/
+out/
+temp_reaper/
+*.jar
+*.class
+
+# Gradle
+.gradle/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and scratch files
+*.log
+scratch/

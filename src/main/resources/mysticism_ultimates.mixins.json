@@ -1,0 +1,22 @@
+{
+  "required": true,
+  "package": "io.github.pok8.mysticismultimates.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "minVersion": "0.8",
+  "mixins": [
+    "LivingEntityEffectSaveMixin",
+    "PredatorMistProjectileMixin",
+    "SpatialStorageContainerMixin",
+    "HiddenRulerSkillMixin",
+    "RequestNamingKeyPacketMixin",
+    "ServerCommonPacketListenerImplMixin",
+    "LevelMixin",
+    "DwarfEntityMixin"
+  ],
+  "client": [
+    "ClientLevelMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

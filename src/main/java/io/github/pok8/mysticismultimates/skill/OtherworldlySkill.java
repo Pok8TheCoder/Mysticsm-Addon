@@ -1,0 +1,265 @@
+package io.github.pok8.mysticismultimates.skill;
+
+import io.github.manasmods.manascore.skill.api.ManasSkillInstance;
+import io.github.manasmods.manascore.skill.api.SkillAPI;
+import io.github.manasmods.tensura.ability.skill.Skill;
+import io.github.manasmods.tensura.entity.ai.goal.TensuraOwnerHurtByTargetGoal;
+import io.github.manasmods.tensura.entity.ai.goal.TensuraOwnerHurtGoal;
+import io.github.manasmods.tensura.storage.ep.ExistenceStorage;
+import io.github.pok8.mysticismultimates.MysticismUltimates;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.ai.goal.GoalSelector;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
+
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+public class OtherworldlySkill extends Skill {
+    public static final int DAY_COOLDOWN = 1440; // 24 minutes (1440 seconds)
+    public static final int MISS_COOLDOWN = 10;  // 10 seconds
+
+    public OtherworldlySkill() {
+        super(SkillType.UNIQUE);
+    }
+
+    @Override
+    public int getModes(ManasSkillInstance instance) {
+        return 2;
+    }
+
+    @Override
+    public int nextMode(LivingEntity entity, ManasSkillInstance instance, int currentMode, boolean reverse) {
+        int step = reverse ? -1 : 1;
+        return Math.floorMod(currentMode + step, getModes(instance));
+    }
+
+    @Override
+    public String getModeId(ManasSkillInstance instance, int mode) {
+        return switch (Math.floorMod(mode, getModes(instance))) {
+            case 1 -> "otherworldly.closed_loop";
+            default -> "otherworldly.shared_secrets";
+        };
+    }
+
+    @Override
+    public MutableComponent getName() {
+        return Component.translatable("mysticism_ultimates.skill.otherworldly");
+    }
+
+    @Override
+    public MutableComponent getSkillDescription() {
+        return Component.translatable("mysticism_ultimates.skill.otherworldly.description");
+    }
+
+    @Override
+    public ResourceLocation getSkillIcon() {
+        return ResourceLocation.fromNamespaceAndPath(MysticismUltimates.MOD_ID, "textures/skill/otherworldly.png");
+    }
+
+    @Override
+    public double getDefaultAcquiringMagiculeCost() {
+        return 100_000.0;
+    }
+
+    @Override
+    public int getMaxMastery() {
+        return 1500;
+    }
+
+    @Override
+    public boolean canBeToggled(ManasSkillInstance instance, LivingEntity entity) {
+        return true;
+    }
+
+    @Override
+    public boolean canTick(ManasSkillInstance instance, LivingEntity entity) {
+        return true;
+    }
+
+    @Override
+    public void onToggleOn(ManasSkillInstance instance, LivingEntity entity) {
+        if (entity instanceof ServerPlayer player) {
+            // Passive toggle: Luck 5 and Hero of the Village 5 with 30s timer (600 ticks)
+            player.addEffect(new MobEffectInstance(MobEffects.LUCK, 600, 4, false, false, true));
+            player.addEffect(new MobEffectInstance(MobEffects.HERO_OF_THE_VILLAGE, 600, 4, false, false, true));
+        }
+    }
+
+    @Override
+    public void onTick(ManasSkillInstance instance, LivingEntity entity) {
+        if (!(entity instanceof ServerPlayer player) || !instance.isToggled()) {
+            return;
+        }
+        // Grant effects with a timer of 30s (600 ticks) and refresh every 5s (100 ticks)
+        if (player.tickCount % 100 == 0 || !player.hasEffect(MobEffects.LUCK) || !player.hasEffect(MobEffects.HERO_OF_THE_VILLAGE)) {
+            player.addEffect(new MobEffectInstance(MobEffects.LUCK, 600, 4, false, false, true));
+            player.addEffect(new MobEffectInstance(MobEffects.HERO_OF_THE_VILLAGE, 600, 4, false, false, true));
+        }
+    }
+
+    @Override
+    public void onToggleOff(ManasSkillInstance instance, LivingEntity entity) {
+        if (entity instanceof ServerPlayer player) {
+            player.removeEffect(MobEffects.LUCK);
+            player.removeEffect(MobEffects.HERO_OF_THE_VILLAGE);
+        }
+    }
+
+    @Override
+    public void onPressed(ManasSkillInstance instance, LivingEntity entity, int heldTicks, int mode) {
+        if (!(entity instanceof ServerPlayer player) || entity.level().isClientSide()) {
+            return;
+        }
+        // Shared cooldown check across both active abilities
+        int remaining = Math.max(instance.getCoolDown(0), instance.getCoolDown(1));
+        if (remaining > 0 || instance.onCoolDown(0) || instance.onCoolDown(1)) {
+            int mins = remaining / 60;
+            int secs = remaining % 60;
+            String timeStr = mins > 0 ? (mins + "m " + secs + "s") : (secs + "s");
+            player.displayClientMessage(Component.translatable("mysticism_ultimates.skill.otherworldly.cooldown", timeStr)
+                    .withStyle(ChatFormatting.RED), true);
+            return;
+        }
+
+        int activeMode = Math.floorMod(mode, getModes(instance));
+        if (activeMode == 0) {
+            castSharedSecrets(player, instance);
+        } else {
+            castClosedLoop(player, instance);
+        }
+    }
+
+    private void applySharedCooldown(ManasSkillInstance instance, int ticks) {
+        instance.setCoolDowns(ticks);
+        instance.setCoolDown(ticks, 0);
+        instance.setCoolDown(ticks, 1);
+        instance.markDirty();
+    }
+
+    private void castSharedSecrets(ServerPlayer player, ManasSkillInstance instance) {
+        LivingEntity target = look(player, LivingEntity.class, 12.0);
+        if (target == null) {
+            // Missed targeting: 10s cooldown
+            applySharedCooldown(instance, MISS_COOLDOWN);
+            player.displayClientMessage(Component.translatable("mysticism_ultimates.skill.otherworldly.shared_secrets.miss")
+                    .withStyle(ChatFormatting.YELLOW), true);
+            player.level().playSound(null, player.blockPosition(), SoundEvents.ENDER_EYE_DEATH, SoundSource.PLAYERS, 1.0F, 1.0F);
+            return;
+        }
+
+        // Check if entity already has the Otherwordly tag
+        if (target.getTags().contains("Otherwordly") || target.getTags().contains("Otherworldly")
+                || target.getTags().contains("otherworldly")) {
+            player.displayClientMessage(Component.translatable("mysticism_ultimates.skill.otherworldly.shared_secrets.already_used", target.getDisplayName())
+                    .withStyle(ChatFormatting.RED), true);
+            player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 1.0F, 1.0F);
+            return;
+        }
+
+        // 1. Strip entity of any boss, mini boss, no mind control, no plunder tags
+        target.getTags().removeIf(t -> {
+            String lower = t.toLowerCase(Locale.ROOT);
+            return lower.contains("boss") || lower.contains("mind_control") || lower.contains("plunder")
+                    || lower.contains("immune") || lower.contains("no_") || lower.contains("not_");
+        });
+        target.addTag("Otherwordly");
+        target.addTag("Otherworldly");
+        target.addTag("otherworldly_stripped");
+        target.addTag("nameable");
+        target.addTag("Nameable");
+        target.addTag("tensura:nameable");
+        target.addTag("tamable");
+        target.addTag("Tamable");
+        target.addTag("mind_controllable");
+        target.addTag("MindControllable");
+        target.addTag("plunderable");
+        target.addTag("Plunderable");
+
+        // 2. Make entity vulnerable and nameable in existence storage, clear existing owner/summoner blockers
+        ExistenceStorage existence = ShadowArmy.existence(target);
+        if (existence != null) {
+            existence.setNameable(true);
+            existence.setName(null);
+            existence.setPermanentOwner(null);
+            existence.setSummoner(null);
+            existence.setSummonedSecond(0);
+            existence.setSkippingEPDrop(true);
+            existence.markDirty();
+        }
+
+        if (player.level() instanceof ServerLevel level) {
+            level.sendParticles(ParticleTypes.ENCHANT, target.getX(), target.getY() + target.getBbHeight() * 0.5, target.getZ(),
+                    24, 0.5, 0.5, 0.5, 0.1);
+            level.sendParticles(ParticleTypes.PORTAL, target.getX(), target.getY() + target.getBbHeight() * 0.5, target.getZ(),
+                    16, 0.4, 0.4, 0.4, 0.1);
+        }
+        player.level().playSound(null, target.blockPosition(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 1.0F, 1.2F);
+
+        // Cooldown: 24 minutes, grants 100 mastery points
+        applySharedCooldown(instance, DAY_COOLDOWN);
+        instance.addMasteryPoint(player, 100);
+        player.displayClientMessage(Component.translatable("mysticism_ultimates.skill.otherworldly.shared_secrets.hit", target.getDisplayName())
+                .withStyle(ChatFormatting.GOLD), false);
+    }
+
+    private void castClosedLoop(ServerPlayer player, ManasSkillInstance instance) {
+        if (!instance.isMastered(player)) {
+            player.displayClientMessage(Component.translatable("mysticism_ultimates.skill.otherworldly.closed_loop.not_mastered")
+                    .withStyle(ChatFormatting.RED), true);
+            return;
+        }
+
+        List<ManasSkillInstance> tempSkills = new ArrayList<>();
+        for (ManasSkillInstance learned : SkillAPI.getSkillsFrom(player).getLearnedSkills()) {
+            if (learned != null && learned.isTemporarySkill()) {
+                tempSkills.add(learned);
+            }
+        }
+
+        if (tempSkills.isEmpty()) {
+            player.displayClientMessage(Component.translatable("mysticism_ultimates.skill.otherworldly.closed_loop.none")
+                    .withStyle(ChatFormatting.RED), true);
+            return;
+        }
+
+        ManasSkillInstance chosen = tempSkills.get(player.getRandom().nextInt(tempSkills.size()));
+        chosen.setRemoveTime(-1);
+        chosen.markDirty();
+
+        applySharedCooldown(instance, DAY_COOLDOWN);
+        player.level().playSound(null, player.blockPosition(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1.0F, 1.0F);
+        player.displayClientMessage(Component.translatable("mysticism_ultimates.skill.otherworldly.closed_loop.success", chosen.getDisplayName())
+                .withStyle(ChatFormatting.LIGHT_PURPLE), false);
+    }
+
+    private static <T extends Entity> T look(Player player, Class<T> type, double range) {
+        AABB box = player.getBoundingBox().expandTowards(player.getLookAngle().scale(range)).inflate(1.0);
+        T best = null;
+        double bestDot = 0.80;
+        for (T entity : player.level().getEntitiesOfClass(type, box, entity -> entity != player && entity.isAlive())) {
+            double dot = entity.getEyePosition().subtract(player.getEyePosition()).normalize().dot(player.getLookAngle());
+            if (dot > bestDot && player.distanceTo(entity) <= range) {
+                best = entity;
+                bestDot = dot;
+            }
+        }
+        return best;
+    }
+}
