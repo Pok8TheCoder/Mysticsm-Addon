@@ -61,6 +61,7 @@ public final class MysticismUltimates {
         NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.GoldLuckHandler::onEntityJoinLevel);
         NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.GoldLuckHandler::onPlayerOpenContainer);
         NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.GoldLuckHandler::onPlayerCloseContainer);
+        NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.GoldLuckHandler::onRightClickBlock);
         NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.GoldLuckHandler::onServerTick);
         ShadowSpirits.register();
         BeelzebubSkill.register();

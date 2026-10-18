@@ -42,6 +42,13 @@ import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerContainerEvent;
+import net.minecraft.core.Direction;
+import net.minecraft.world.CompoundContainer;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockDropsEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -49,11 +56,43 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class GoldLuckHandler {
     private static final Map<Container, ActiveChestAlignment> ACTIVE_ALIGNMENTS = new HashMap<>();
     private static final Set<Container> PROCESSED_CONTAINERS = Collections.newSetFromMap(new WeakHashMap<>());
     private static final Map<UUID, Long> LAST_EVASION = new HashMap<>();
+    private static final Map<UUID, PendingChest> PENDING_CHESTS = new ConcurrentHashMap<>();
+
+    private static class PendingChest {
+        final BlockPos pos;
+        final ResourceKey<LootTable> lootTable;
+        final long timestamp;
+
+        PendingChest(BlockPos pos, ResourceKey<LootTable> lootTable, long timestamp) {
+            this.pos = pos;
+            this.lootTable = lootTable;
+            this.timestamp = timestamp;
+        }
+    }
+
+    public static boolean hasGoldLuck(LivingEntity entity) {
+        if (entity == null) return false;
+        if (entity.hasEffect(ShadowEffects.GOLD_LUCK)) return true;
+        if (entity instanceof ServerPlayer player) {
+            try {
+                if (io.github.pok8.mysticismultimates.registry.CustomSkills.OTHERWORLDLY != null
+                        && io.github.pok8.mysticismultimates.registry.CustomSkills.OTHERWORLDLY.get() != null) {
+                    var opt = io.github.manasmods.manascore.skill.api.SkillAPI.getSkillsFrom(player)
+                            .getSkill(io.github.pok8.mysticismultimates.registry.CustomSkills.OTHERWORLDLY.get());
+                    if (opt.isPresent() && opt.get().getTag().getBoolean("gold_luck_active")) {
+                        return true;
+                    }
+                }
+            } catch (Throwable ignored) {}
+        }
+        return false;
+    }
 
     private static Field lootTablePoolsField;
     private static Field lootPoolEntriesField;
@@ -88,7 +127,7 @@ public final class GoldLuckHandler {
         if (!(event.getEntity() instanceof ServerPlayer player)) {
             return;
         }
-        if (!player.hasEffect(ShadowEffects.GOLD_LUCK)) {
+        if (!hasGoldLuck(player)) {
             return;
         }
 
@@ -123,7 +162,7 @@ public final class GoldLuckHandler {
         if (!(event.getBreaker() instanceof ServerPlayer player)) {
             return;
         }
-        if (!player.hasEffect(ShadowEffects.GOLD_LUCK)) {
+        if (!hasGoldLuck(player)) {
             return;
         }
 
@@ -218,7 +257,7 @@ public final class GoldLuckHandler {
         if (!(event.getSource().getEntity() instanceof ServerPlayer player)) {
             return;
         }
-        if (!player.hasEffect(ShadowEffects.GOLD_LUCK)) {
+        if (!hasGoldLuck(player)) {
             return;
         }
 
@@ -237,10 +276,11 @@ public final class GoldLuckHandler {
      * 4. Dwarf & Villager Job / Trade Optimization ("OLucked" Tag)
      * ========================================================================= */
     public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
+        if (event.getLevel().isClientSide()) return;
         if (!(event.getEntity() instanceof ServerPlayer player)) {
             return;
         }
-        if (!player.hasEffect(ShadowEffects.GOLD_LUCK)) {
+        if (!hasGoldLuck(player)) {
             return;
         }
 
@@ -254,13 +294,17 @@ public final class GoldLuckHandler {
     }
 
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
+        if (event.getLevel().isClientSide() || event.getLevel().getServer() == null) {
+            return;
+        }
         Entity entity = event.getEntity();
         if (entity instanceof Villager || entity instanceof DwarfEntity) {
-            // Check if any nearby player within 16 blocks has Gold Luck
             Level level = event.getLevel();
-            for (ServerPlayer player : level.getServer().getPlayerList().getPlayers()) {
+            MinecraftServer server = level.getServer();
+            if (server == null) return;
+            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
                 if (player.level() == level && player.distanceToSqr(entity) <= 256.0) {
-                    if (player.hasEffect(ShadowEffects.GOLD_LUCK)) {
+                    if (hasGoldLuck(player)) {
                         entity.addTag("OLucked");
                         if (entity instanceof Merchant merchant) {
                             optimizeMerchant(merchant);
@@ -309,6 +353,66 @@ public final class GoldLuckHandler {
         } catch (Throwable ignored) {}
     }
 
+    public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getLevel().isClientSide()) return;
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        if (!hasGoldLuck(player)) return;
+
+        BlockPos pos = event.getPos();
+        Level level = event.getLevel();
+        BlockEntity be = level.getBlockEntity(pos);
+        if (be == null) return;
+
+        ResourceKey<LootTable> lootTable = null;
+
+        // 1. Lootr Block Entity Support
+        if (be.getClass().getName().contains("Lootr")) {
+            try {
+                Method hasLootMethod = null;
+                for (Method m : be.getClass().getMethods()) {
+                    if (m.getName().equals("hasLootAvailable") && m.getParameterCount() == 1) {
+                        hasLootMethod = m;
+                        break;
+                    }
+                }
+                boolean available = true;
+                if (hasLootMethod != null) {
+                    available = (boolean) hasLootMethod.invoke(be, player);
+                }
+                if (available) {
+                    for (String mName : List.of("getInfoLootTable", "getLootTable")) {
+                        try {
+                            Method getTableMethod = be.getClass().getMethod(mName);
+                            lootTable = (ResourceKey<LootTable>) getTableMethod.invoke(be);
+                            if (lootTable != null) break;
+                        } catch (NoSuchMethodException ignored) {}
+                    }
+                }
+            } catch (Throwable ignored) {}
+        }
+
+        // 2. Vanilla RandomizableContainerBlockEntity Support
+        if (lootTable == null && be instanceof RandomizableContainerBlockEntity rc) {
+            lootTable = rc.getLootTable();
+        }
+
+        // 3. Double Chest Support
+        if (lootTable == null && be instanceof ChestBlockEntity chestBe) {
+            BlockState state = chestBe.getBlockState();
+            if (state.hasProperty(ChestBlock.TYPE) && state.getValue(ChestBlock.TYPE) != ChestType.SINGLE) {
+                Direction dir = ChestBlock.getConnectedDirection(state);
+                BlockEntity neighbor = level.getBlockEntity(pos.relative(dir));
+                if (neighbor instanceof RandomizableContainerBlockEntity nrc) {
+                    lootTable = nrc.getLootTable();
+                }
+            }
+        }
+
+        if (lootTable != null) {
+            PENDING_CHESTS.put(player.getUUID(), new PendingChest(pos, lootTable, System.currentTimeMillis()));
+        }
+    }
+
     /* =========================================================================
      * 5. Chest Loot "Slot Overflow" & 2-Second Delay & Same-Odds Drop-Hit System
      * ========================================================================= */
@@ -316,18 +420,34 @@ public final class GoldLuckHandler {
         if (!(event.getEntity() instanceof ServerPlayer player)) {
             return;
         }
-        if (!player.hasEffect(ShadowEffects.GOLD_LUCK)) {
+        if (!hasGoldLuck(player)) {
             return;
         }
 
-        Container container = findTargetChestContainer(event.getContainer().slots);
+        Container container = findTargetChestContainer(event.getContainer().slots, player);
         if (container == null || PROCESSED_CONTAINERS.contains(container)) {
             return;
         }
 
-        ResourceKey<LootTable> lootTableKey = resolveLootTableKey(container, player);
+        PendingChest pending = PENDING_CHESTS.remove(player.getUUID());
+        ResourceKey<LootTable> lootTableKey = null;
+        BlockPos chestPos = null;
+
+        if (pending != null && (System.currentTimeMillis() - pending.timestamp) < 5000) {
+            lootTableKey = pending.lootTable;
+            chestPos = pending.pos;
+        }
+
+        if (lootTableKey == null) {
+            lootTableKey = resolveLootTableKey(container, player);
+        }
+
         if (lootTableKey == null) {
             return;
+        }
+
+        if (chestPos == null) {
+            chestPos = resolveContainerPos(container, player);
         }
 
         // Mark as processed so it only triggers on first opening
@@ -353,7 +473,7 @@ public final class GoldLuckHandler {
         // Candidate overflow slots: N = floor(E / 2) if E > 10, else N = E
         int candidateCount = (totalEmpty > 10) ? (totalEmpty / 2) : totalEmpty;
         Collections.shuffle(emptySlots, new Random(player.getRandom().nextLong()));
-        List<Integer> candidateSlots = emptySlots.subList(0, candidateCount);
+        List<Integer> candidateSlots = new ArrayList<>(emptySlots.subList(0, candidateCount));
 
         // Extract loot table items with baseline drop rate < 25%
         MinecraftServer server = player.getServer();
@@ -380,7 +500,10 @@ public final class GoldLuckHandler {
             container.setItem(slotIndex, placeholder.copy());
         }
 
-        BlockPos chestPos = resolveContainerPos(container, player);
+        if (player.containerMenu != null) {
+            player.containerMenu.broadcastChanges();
+        }
+
         ACTIVE_ALIGNMENTS.put(container, new ActiveChestAlignment(
                 player.getUUID(),
                 container,
@@ -429,8 +552,9 @@ public final class GoldLuckHandler {
             alignment.remainingTicks--;
 
             // Protection: if player carried placeholder on cursor, clear it
-            if (isPlaceholder(player.containerMenu.getCarried())) {
+            if (player.containerMenu != null && isPlaceholder(player.containerMenu.getCarried())) {
                 player.containerMenu.setCarried(ItemStack.EMPTY);
+                player.containerMenu.broadcastChanges();
             }
 
             // Subtle chime every 10 ticks
@@ -449,6 +573,26 @@ public final class GoldLuckHandler {
         for (int slot : alignment.candidateSlots) {
             ItemStack finalStack = alignment.finalItems.get(slot);
             alignment.container.setItem(slot, (finalStack != null && !finalStack.isEmpty()) ? finalStack : ItemStack.EMPTY);
+        }
+        // Safety: remove any leftover placeholders in the container
+        for (int i = 0; i < alignment.container.getContainerSize(); i++) {
+            if (isPlaceholder(alignment.container.getItem(i))) {
+                alignment.container.setItem(i, ItemStack.EMPTY);
+            }
+        }
+        if (player != null) {
+            if (player.containerMenu != null) {
+                if (isPlaceholder(player.containerMenu.getCarried())) {
+                    player.containerMenu.setCarried(ItemStack.EMPTY);
+                }
+                player.containerMenu.broadcastChanges();
+            }
+            // Safety: clean placeholders from player inventory if any leaked
+            for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+                if (isPlaceholder(player.getInventory().getItem(i))) {
+                    player.getInventory().setItem(i, ItemStack.EMPTY);
+                }
+            }
         }
         if (success && player != null) {
             player.level().playSound(null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 0.8F, 1.2F);
@@ -480,18 +624,12 @@ public final class GoldLuckHandler {
         return name != null && name.getString().contains("Otherworldly: Aligning Fates");
     }
 
-    private static Container findTargetChestContainer(List<Slot> slots) {
+    private static Container findTargetChestContainer(List<Slot> slots, ServerPlayer player) {
         for (Slot slot : slots) {
             Container cont = slot.container;
             if (cont == null) continue;
-            // Support Lootr instanced inventories
-            if (cont.getClass().getName().contains("Lootr")) {
-                return cont;
-            }
-            // Support Vanilla Randomizable Containers
-            if (cont instanceof RandomizableContainerBlockEntity || cont instanceof RandomizableContainer) {
-                return cont;
-            }
+            if (cont == player.getInventory() || cont instanceof net.minecraft.world.entity.player.Inventory) continue;
+            return cont;
         }
         return null;
     }
@@ -504,14 +642,16 @@ public final class GoldLuckHandler {
                 Method getInfoMethod = container.getClass().getMethod("getInfo");
                 Object info = getInfoMethod.invoke(container);
                 if (info != null) {
-                    Method getActualOpenersMethod = info.getClass().getMethod("getActualOpeners");
-                    Set<UUID> openers = (Set<UUID>) getActualOpenersMethod.invoke(info);
-                    // Only trigger if player hasn't looted it yet
-                    if (openers != null && openers.contains(player.getUUID())) {
-                        return null;
+                    Method getLootTableMethod = null;
+                    for (String mName : List.of("getInfoLootTable", "getLootTable")) {
+                        try {
+                            getLootTableMethod = info.getClass().getMethod(mName);
+                            break;
+                        } catch (NoSuchMethodException ignored) {}
                     }
-                    Method getLootTableMethod = info.getClass().getMethod("getInfoLootTable");
-                    return (ResourceKey<LootTable>) getLootTableMethod.invoke(info);
+                    if (getLootTableMethod != null) {
+                        return (ResourceKey<LootTable>) getLootTableMethod.invoke(info);
+                    }
                 }
             } catch (Throwable ignored) {}
         }
