@@ -70,6 +70,10 @@ public final class VicielSkill extends DifficultUltimateSkill {
 
     @Override
     public boolean checkAcquiringRequirement(Player player, double cost) {
+        io.github.manasmods.tensura.storage.ep.ExistenceStorage existence = ShadowArmy.existence(player);
+        if (existence == null || (!existence.isTrueDemonLord() && !existence.isTrueHero())) {
+            return false;
+        }
         ManasSkill hidden = UniqueMysticismSkills.HIDDEN_RULER.get();
         return hidden != null && SkillUtils.isSkillMastered(player, hidden);
     }

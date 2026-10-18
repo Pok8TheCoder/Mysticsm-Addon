@@ -20,6 +20,7 @@ import io.github.manasmods.tensura.registry.attribute.TensuraAttributes;
 import io.github.manasmods.tensura.registry.effect.TensuraMobEffects;
 import io.github.manasmods.tensura.registry.entity.HumanEntityTypes;
 import io.github.manasmods.tensura.registry.particle.TensuraParticleTypes;
+import io.github.manasmods.tensura.registry.skill.CommonSkills;
 import io.github.manasmods.tensura.registry.skill.ResistanceSkills;
 import io.github.manasmods.tensura.registry.skill.UniqueSkills;
 import io.github.manasmods.tensura.registry.sound.TensuraSoundEvents;
@@ -117,6 +118,37 @@ public class HadesSkill extends Skill implements ICloning {
             return Component.literal("Merciless");
         }
         return Component.translatable("mysticism_ultimates.skill.mode.hades." + MODES[index]);
+    }
+
+    @Override
+    public boolean checkAcquiringRequirement(Player player, double cost) {
+        ExistenceStorage existence = ShadowArmy.existence(player);
+        if (existence == null || (!existence.isTrueDemonLord() && !existence.isTrueHero())) {
+            return false;
+        }
+        ManasSkill reaper = UniqueSkills.REAPER.get();
+        ManasSkill merciless = UniqueSkills.MERCILESS.get();
+        ManasSkill poison = CommonSkills.POISON.get();
+        ManasSkill corrosion = CommonSkills.CORROSION.get();
+        ManasSkill paralysis = CommonSkills.PARALYSIS.get();
+        return reaper != null && merciless != null && poison != null && corrosion != null && paralysis != null
+                && SkillUtils.isSkillMastered(player, reaper)
+                && SkillUtils.isSkillMastered(player, merciless)
+                && SkillUtils.isSkillMastered(player, poison)
+                && SkillUtils.isSkillMastered(player, corrosion)
+                && SkillUtils.isSkillMastered(player, paralysis);
+    }
+
+    @Override
+    public boolean canLearnSkill(ManasSkillInstance instance, LivingEntity entity) {
+        if (!super.canLearnSkill(instance, entity)) {
+            return false;
+        }
+        if (entity instanceof Player player) {
+            ExistenceStorage existence = ShadowArmy.existence(player);
+            return existence != null && (existence.isTrueDemonLord() || existence.isTrueHero());
+        }
+        return true;
     }
 
     @Override

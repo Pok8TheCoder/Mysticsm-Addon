@@ -68,6 +68,10 @@ public final class LavernaSkill extends DifficultUltimateSkill implements ISpati
 
     @Override
     public boolean checkAcquiringRequirement(Player player, double cost) {
+        io.github.manasmods.tensura.storage.ep.ExistenceStorage existence = ShadowArmy.existence(player);
+        if (existence == null || (!existence.isTrueDemonLord() && !existence.isTrueHero())) {
+            return false;
+        }
         ManasSkill vainglory = UniqueShadowSkills.VAINGLORY.get();
         ManasSkill domination = ExtraMysticismSkills.DARKNESS_DOMINATION.get();
         return vainglory != null && domination != null

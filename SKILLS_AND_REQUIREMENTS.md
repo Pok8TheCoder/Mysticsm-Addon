@@ -44,8 +44,9 @@ To evolve and acquire Ultimate skills through the natural progression system, th
 - **Skill Type**: `UNIQUE`
 - **Acquisition Cost**: `100,000 Magicules`
 - **Max Mastery**: `1,500`
+- **Acquisition Type**: **Evolution Only** (*Not auto-acquirable on character creation, skill reroll, or dwarf drops*)
 - **Acquisition Requirements**:
-  1. Mastered **Unique Skill: Plunderer** (100% Mastery)
+  1. Mastered **Unique Skill: Plunderer** (`mysticism_ultimates:plunderer`, 100% Mastery)
   2. Mastered **Extra Skill: Darkness Manipulation** (`tensura:darkness_manipulation` / Mysticism, 100% Mastery)
 - **Modes**:
   1. **Shadow Warrior** (`vainglory.shadow_warrior`): Advanced physical/spiritual shadow strikes.
@@ -54,6 +55,10 @@ To evolve and acquire Ultimate skills through the natural progression system, th
   4. **Shadow Pit** (`vainglory.shadow_pit` — *Unlocked at 1,500 Mastery*): Extracts souls from fallen foes to recruit them into the Shadow Army.
   5. **Army Summon** (`vainglory.army_summon` — *Unlocked at 1,500 Mastery*): Deploys stored shadow subordinates into battle.
 
+> [!IMPORTANT]
+> **Evolution-Only Status**:
+> Even though Vainglory is a Unique Skill, it is strictly an evolution of **Plunderer**. It is excluded from the starting skills pool, second skills pool, and random mob/dwarf plunder pools. It only unlocks when Plunderer and Darkness Manipulation are fully mastered.
+
 ---
 
 ### 🌀 Unique Skill: Otherworldly (`mysticism_ultimates:otherworldly`)
@@ -61,10 +66,18 @@ To evolve and acquire Ultimate skills through the natural progression system, th
 - **Skill Type**: `UNIQUE`
 - **Acquisition Cost**: `100,000 Magicules`
 - **Max Mastery**: `1,500`
-- **Passive Effect (When Toggled)**: Constant **Luck V** and **Hero of the Village V** refreshed every 5 seconds.
+- **Acquisition Type**: Acquirable on character creation, skill reroll, or via Skill Menu.
+- **Passive Effect (When Toggled)**: Constant **Luck V** and **Hero of the Village V** refreshed every 5 seconds. Usable immediately as-is.
 - **Modes**:
-  1. **Shared Secrets** (`otherworldly.shared_secrets`): Tames non-boss entities and marks them with the persistent `Otherwordly` tag. Marked entities cannot be re-targeted.
-  2. **Closed Loop** (`otherworldly.closed_loop`): Instantly swaps positions with a targeted bonded entity, redirecting attacks and evading hazards.
+  1. **Shared Secrets** (`otherworldly.shared_secrets`): Strips entities of boss, mini-boss, and plunder immunities, making them completely vulnerable, nameable, and tamable.
+     - **Dimension Requirement**: To cast Shared Secrets, the player **MUST have visited all 5 realms**:
+       1. Overworld (`minecraft:overworld`)
+       2. Nether (`minecraft:the_nether`)
+       3. The End (`minecraft:the_end`)
+       4. Hell (`tensura:hell`)
+       5. Labyrinth (`tensura:labyrinth`)
+     - If any realm has not been visited, the ability remains sealed, alerts the player to missing dimensions, and applies a 10s cooldown rather than the 24-minute cooldown.
+  2. **Closed Loop** (`otherworldly.closed_loop`): Binds a temporary skill into a permanent learned skill (requires mastery, 24m cooldown).
 
 ---
 
@@ -112,6 +125,11 @@ The following **8 Ultimate Skills** are fully ported, functional, and equipped w
                                   [ Uriel ]                       [ Viciel ]
                                  1,000,000 EP                     666,666 EP
 ```
+
+> [!IMPORTANT]
+> **Universal Awakening Requirement**:
+> **ANY and ALL Ultimate Skills** strictly require the player to be awakened as a **True Demon Lord** (`existence.isTrueDemonLord()`) or a **True Hero** (`existence.isTrueHero()`).
+> Even if all prerequisite skills are 100% mastered and EP thresholds are met, unawakened players cannot acquire, learn, or evolve into any Ultimate Skill.
 
 ---
 

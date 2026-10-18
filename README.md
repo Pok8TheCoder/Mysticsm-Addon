@@ -39,14 +39,16 @@ For in-depth breakdowns of each skill, mode mechanics, EP costs, evolution trees
 
 ### 🎲 3. Character & Skill Reroll Integration
 - **Starting & Second Skills Pools**:
-  - Unique skills **Plunderer** (`mysticism_ultimates:plunderer`), **Vainglory** (`mysticism_ultimates:vainglory`), and **Otherworldly** (`mysticism_ultimates:otherworldly`) are dynamically injected into `ReincarnationMenu.CONFIG.Skills.startingSkills` and `secondSkills`.
+  - Unique skills **Plunderer** (`mysticism_ultimates:plunderer`) and **Otherworldly** (`mysticism_ultimates:otherworldly`) are dynamically injected into `ReincarnationMenu.CONFIG.Skills.startingSkills` and `secondSkills`.
   - Also written to `config/tensura/reincarnation_config.toml`.
   - Can be rolled naturally upon first-time character creation, Character Reset Scrolls, and Skill Reset Scrolls.
+  - **Vainglory** is explicitly **excluded** from starting and second skills because it is strictly an evolution of Plunderer.
 
 ### ⛏️ 4. Plunderer Mod (TensuraPlunder) Compatibility
 - **Dwarf Unique Skill Spawning**:
   - Registered under `#tensura:skills/unique_skills` as well as `#mysticism_ultimates:unique_skills` and `#mysticism_ultimates:unique`.
-  - Verified 100% compatible with `tensuraplunder`'s dwarf random unique skill rolling mechanism (`SkillType.UNIQUE` detection).
+  - **Vainglory** is automatically blacklisted in `TensuraPlunderConfig.spawnSkillBlacklist` (in both `tensuraplunder.json` and via runtime injection) so dwarfs can never spawn with Vainglory directly.
+  - Base uniques **Plunderer** and **Otherworldly** can spawn naturally on eligible mobs (dwarfs, villagers, lizardmen).
 
 ### ☀️ 5. True Daylight & True Nightlight Synchronization
 - **Mutual Exclusivity**: True Daylight and True Nightlight cannot be active concurrently; toggling one automatically deactivates or blocks the other.
@@ -54,11 +56,23 @@ For in-depth breakdowns of each skill, mode mechanics, EP costs, evolution trees
   - Emits moving 4-chunk radius fields of pure sunlight (time 6,000, light 15) or midnight darkness (time 18,000, light 0).
   - True Nightlight allows sleeping in beds at any time of day and satisfies nocturnal skill conditions for skills like **Viciel** and **Laverna**.
 
-### 🌀 6. Otherworldly Skill Rule
-- **Shared Secrets**: Tamed entities receive a persistent `Otherwordly` tag. Marked entities cannot be re-targeted; bosses and minibosses are immune.
-- **Closed Loop**: Instant swap positions with bonded entity.
+### 🌀 6. Otherworldly Skill (Dimensions & Passive Rules)
+- **Acquisition**: Acquirable as a base Unique Skill through character creation or skill rerolls.
+- **Passive Effect**: Toggle bestows Luck V and Hero of the Village V; usable immediately as-is.
+- **Shared Secrets Dimension Prerequisite**: To cast **Shared Secrets**, the player **MUST have visited all 5 realms**:
+  1. Overworld (`minecraft:overworld`)
+  2. Nether (`minecraft:the_nether`)
+  3. The End (`minecraft:the_end`)
+  4. Hell (`tensura:hell`)
+  5. Labyrinth (`tensura:labyrinth`)
+  *If unvisited realms remain, the ability is canceled with a 10s cooldown and displays the missing dimensions.*
+- **Closed Loop**: Binds a temporary skill into a permanent learned skill (requires mastery, 24m cooldown).
 
-### 🧹 7. Category 3 Placeholder Skills Cleanup
+### 👑 7. Universal Awakening Requirement for All Ultimates
+- **True Demon Lord or True Hero**: **ANY and ALL Ultimate Skills** strictly require the player to be awakened as a **True Demon Lord** (`existence.isTrueDemonLord()`) or a **True Hero** (`existence.isTrueHero()`).
+- Unawakened players cannot learn or evolve into any Ultimate Skill via the Skill Menu or evolution ticks.
+
+### 🧹 8. Category 3 Placeholder Skills Cleanup
 - 22 unfinished placeholder stubs (*Amaterasu, Asmodeus, Belphegor, Lucifer, Michael, Sariel, Satanael, etc.*) have been cleanly disabled from registration and evolution checks until faithful implementations are completed.
 
 ---

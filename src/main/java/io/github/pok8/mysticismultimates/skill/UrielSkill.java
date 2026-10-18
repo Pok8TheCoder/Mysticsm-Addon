@@ -77,6 +77,28 @@ public class UrielSkill extends Skill implements ISpatialStorage {
         super(SkillType.ULTIMATE);
     }
 
+    @Override
+    public boolean checkAcquiringRequirement(Player player, double cost) {
+        io.github.manasmods.tensura.storage.ep.ExistenceStorage existence = ShadowArmy.existence(player);
+        if (existence == null || (!existence.isTrueDemonLord() && !existence.isTrueHero())) {
+            return false;
+        }
+        ManasSkill prison = io.github.manasmods.tensura.registry.skill.UniqueSkills.INFINITY_PRISON.get();
+        return prison != null && io.github.manasmods.tensura.ability.SkillUtils.isSkillMastered(player, prison);
+    }
+
+    @Override
+    public boolean canLearnSkill(ManasSkillInstance instance, LivingEntity entity) {
+        if (!super.canLearnSkill(instance, entity)) {
+            return false;
+        }
+        if (entity instanceof Player player) {
+            io.github.manasmods.tensura.storage.ep.ExistenceStorage existence = ShadowArmy.existence(player);
+            return existence != null && (existence.isTrueDemonLord() || existence.isTrueHero());
+        }
+        return true;
+    }
+
     public static void register() {
         NeoForge.EVENT_BUS.addListener(UrielSkill::onLivingDamagePre);
         NeoForge.EVENT_BUS.addListener(UrielSkill::onEffectApplicable);

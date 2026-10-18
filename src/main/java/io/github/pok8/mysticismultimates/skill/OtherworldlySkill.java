@@ -122,6 +122,95 @@ public class OtherworldlySkill extends Skill {
         }
     }
 
+    public static final String DIM_TAG_PREFIX = "mysticism_visited_dim:";
+    public static final ResourceLocation DIM_OVERWORLD = ResourceLocation.fromNamespaceAndPath("minecraft", "overworld");
+    public static final ResourceLocation DIM_NETHER = ResourceLocation.fromNamespaceAndPath("minecraft", "the_nether");
+    public static final ResourceLocation DIM_END = ResourceLocation.fromNamespaceAndPath("minecraft", "the_end");
+    public static final ResourceLocation DIM_HELL = ResourceLocation.fromNamespaceAndPath("tensura", "hell");
+    public static final ResourceLocation DIM_LABYRINTH = ResourceLocation.fromNamespaceAndPath("tensura", "labyrinth");
+
+    public static final List<ResourceLocation> REQUIRED_DIMENSIONS = List.of(
+            DIM_OVERWORLD,
+            DIM_NETHER,
+            DIM_END,
+            DIM_HELL,
+            DIM_LABYRINTH
+    );
+
+    public static void onPlayerChangedDimension(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            recordDimension(player, event.getTo().location());
+        }
+    }
+
+    public static void recordDimension(ServerPlayer player, ResourceLocation dim) {
+        if (player == null || dim == null) {
+            return;
+        }
+        player.addTag(DIM_TAG_PREFIX + dim.toString());
+    }
+
+    public static boolean hasVisited(ServerPlayer player, ResourceLocation dim) {
+        if (player == null || dim == null) {
+            return false;
+        }
+        if (player.getTags().contains(DIM_TAG_PREFIX + dim.toString())) {
+            return true;
+        }
+
+        // Fallbacks: Check current location, spawn point, or advancements
+        if (dim.equals(DIM_OVERWORLD)) {
+            if (player.serverLevel().dimension().location().equals(DIM_OVERWORLD)
+                    || (player.getRespawnDimension() != null && player.getRespawnDimension().location().equals(DIM_OVERWORLD))) {
+                recordDimension(player, DIM_OVERWORLD);
+                return true;
+            }
+        } else if (dim.equals(DIM_NETHER)) {
+            if (hasAdvancement(player, ResourceLocation.fromNamespaceAndPath("minecraft", "story/enter_the_nether"))) {
+                recordDimension(player, DIM_NETHER);
+                return true;
+            }
+        } else if (dim.equals(DIM_END)) {
+            if (hasAdvancement(player, ResourceLocation.fromNamespaceAndPath("minecraft", "story/enter_the_end"))) {
+                recordDimension(player, DIM_END);
+                return true;
+            }
+        } else if (dim.equals(DIM_HELL)) {
+            if (hasAdvancement(player, ResourceLocation.fromNamespaceAndPath("tensura", "hell"))) {
+                recordDimension(player, DIM_HELL);
+                return true;
+            }
+        } else if (dim.equals(DIM_LABYRINTH)) {
+            if (hasAdvancement(player, ResourceLocation.fromNamespaceAndPath("tensura", "labyrinth"))) {
+                recordDimension(player, DIM_LABYRINTH);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static List<ResourceLocation> getMissingDimensions(ServerPlayer player) {
+        recordDimension(player, player.serverLevel().dimension().location());
+        List<ResourceLocation> missing = new ArrayList<>();
+        for (ResourceLocation dim : REQUIRED_DIMENSIONS) {
+            if (!hasVisited(player, dim)) {
+                missing.add(dim);
+            }
+        }
+        return missing;
+    }
+
+    private static boolean hasAdvancement(ServerPlayer player, ResourceLocation advId) {
+        if (player == null || player.server == null) {
+            return false;
+        }
+        net.minecraft.advancements.AdvancementHolder holder = player.server.getAdvancements().get(advId);
+        if (holder == null) {
+            return false;
+        }
+        return player.getAdvancements().getOrStartProgress(holder).isDone();
+    }
+
     @Override
     public void onPressed(ManasSkillInstance instance, LivingEntity entity, int heldTicks, int mode) {
         if (!(entity instanceof ServerPlayer player) || entity.level().isClientSide()) {
@@ -154,6 +243,27 @@ public class OtherworldlySkill extends Skill {
     }
 
     private void castSharedSecrets(ServerPlayer player, ManasSkillInstance instance) {
+        // Enforce required dimension visits: Overworld, Nether, End, Hell, Labyrinth
+        List<ResourceLocation> missing = getMissingDimensions(player);
+        if (!missing.isEmpty()) {
+            List<String> missingNames = missing.stream().map(d -> switch (d.getPath()) {
+                case "overworld" -> "Overworld";
+                case "the_nether" -> "Nether";
+                case "the_end" -> "The End";
+                case "hell" -> "Hell";
+                case "labyrinth" -> "Labyrinth";
+                default -> d.getPath();
+            }).toList();
+            applySharedCooldown(instance, MISS_COOLDOWN);
+            player.displayClientMessage(
+                    Component.translatable("mysticism_ultimates.skill.otherworldly.shared_secrets.missing_dimensions",
+                            String.join(", ", missingNames)).withStyle(ChatFormatting.RED),
+                    true
+            );
+            player.level().playSound(null, player.blockPosition(), SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 1.0F, 1.0F);
+            return;
+        }
+
         LivingEntity target = look(player, LivingEntity.class, 12.0);
         if (target == null) {
             // Missed targeting: 10s cooldown

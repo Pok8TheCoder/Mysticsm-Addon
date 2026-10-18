@@ -112,6 +112,27 @@ public class DifficultUltimateSkill extends Skill {
     }
 
     @Override
+    public boolean checkAcquiringRequirement(Player player, double cost) {
+        io.github.manasmods.tensura.storage.ep.ExistenceStorage existence = ShadowArmy.existence(player);
+        if (existence == null || (!existence.isTrueDemonLord() && !existence.isTrueHero())) {
+            return false;
+        }
+        return super.checkAcquiringRequirement(player, cost);
+    }
+
+    @Override
+    public boolean canLearnSkill(ManasSkillInstance instance, LivingEntity entity) {
+        if (!super.canLearnSkill(instance, entity)) {
+            return false;
+        }
+        if (entity instanceof Player player) {
+            io.github.manasmods.tensura.storage.ep.ExistenceStorage existence = ShadowArmy.existence(player);
+            return existence != null && (existence.isTrueDemonLord() || existence.isTrueHero());
+        }
+        return true;
+    }
+
+    @Override
     public void onForgetSkill(ManasSkillInstance instance, LivingEntity entity) {
         super.onForgetSkill(instance, entity);
         if (entity.level().isClientSide() || instance.isTemporarySkill()) {

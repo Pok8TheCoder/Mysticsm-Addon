@@ -53,6 +53,7 @@ public final class MysticismUltimates {
         NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.TimeSkills::onLivingDamagePost);
         NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.TimeSkills::onPlayerLoggedOut);
         NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.TimeSkills::onPlayerChangeDimension);
+        NeoForge.EVENT_BUS.addListener(io.github.pok8.mysticismultimates.skill.OtherworldlySkill::onPlayerChangedDimension);
         ShadowSpirits.register();
         BeelzebubSkill.register();
         VicielSkill.register();
@@ -74,13 +75,16 @@ public final class MysticismUltimates {
                         io.github.manasmods.tensura.menu.ReincarnationMenu.CONFIG.Skills.startingSkills);
                 java.util.List<String> second = new java.util.ArrayList<>(
                         io.github.manasmods.tensura.menu.ReincarnationMenu.CONFIG.Skills.secondSkills);
+
+                // Vainglory is an evolution of Plunderer and must NEVER be in starting/second skills
+                boolean changedStarting = starting.remove("mysticism_ultimates:vainglory");
+                boolean changedSecond = second.remove("mysticism_ultimates:vainglory");
+
+                // Plunderer and Otherworldly are acquirable starting/second uniques
                 java.util.List<String> toAdd = java.util.List.of(
                         "mysticism_ultimates:plunderer",
-                        "mysticism_ultimates:vainglory",
                         "mysticism_ultimates:otherworldly"
                 );
-                boolean changedStarting = false;
-                boolean changedSecond = false;
                 for (String s : toAdd) {
                     if (!starting.contains(s)) {
                         starting.add(s);
@@ -96,6 +100,26 @@ public final class MysticismUltimates {
                 }
                 if (changedSecond) {
                     io.github.manasmods.tensura.menu.ReincarnationMenu.CONFIG.Skills.secondSkills = second;
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+
+        // Compatibility with TensuraPlunder: Blacklist Vainglory from random mob / dwarf spawning
+        try {
+            Class<?> clazz = Class.forName("com.plunder.tensuraplunder.config.TensuraPlunderConfig");
+            Object inst = clazz.getField("INSTANCE").get(null);
+            if (inst != null) {
+                java.lang.reflect.Field field = clazz.getField("spawnSkillBlacklist");
+                @SuppressWarnings("unchecked")
+                java.util.List<String> bl = (java.util.List<String>) field.get(inst);
+                if (bl != null) {
+                    if (!bl.contains("mysticism_ultimates:vainglory")) {
+                        bl.add("mysticism_ultimates:vainglory");
+                    }
+                    if (!bl.contains("vainglory")) {
+                        bl.add("vainglory");
+                    }
                 }
             }
         } catch (Throwable ignored) {

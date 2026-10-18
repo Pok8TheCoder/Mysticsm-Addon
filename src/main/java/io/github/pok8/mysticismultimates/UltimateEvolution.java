@@ -1,5 +1,7 @@
 package io.github.pok8.mysticismultimates;
 
+import io.github.Memoires.mysticism.registry.skill.ExtraMysticismSkills;
+import io.github.pok8.mysticismultimates.registry.UniqueShadowSkills;
 import io.github.manasmods.manascore.race.api.RaceAPI;
 import io.github.manasmods.manascore.skill.api.ManasSkill;
 import io.github.manasmods.manascore.skill.api.SkillAPI;
@@ -33,7 +35,17 @@ public final class UltimateEvolution {
         if (!(event.getEntity() instanceof ServerPlayer player) || player.tickCount % 20 != 0) {
             return;
         }
+        // Continuously record visited dimensions for Otherworldly Shared Secrets requirement
+        io.github.pok8.mysticismultimates.skill.OtherworldlySkill.recordDimension(player, player.serverLevel().dimension().location());
+
         GameRules rules = player.serverLevel().getGameRules();
+        if (!rules.getBoolean(UltimateGamerules.ENABLE_ACQUISITION)) {
+            return;
+        }
+
+        // Unique evolution: Plunderer -> Vainglory (Requires Mastered Plunderer + Mastered Darkness Manipulation)
+        checkUniqueEvolutions(player, rules);
+
         UltimateSlotStorage slots = UltimateSlotStorage.get(player);
         if (slots == null) {
             return;
@@ -44,9 +56,8 @@ public final class UltimateEvolution {
                 return;
             }
         }
-        if (!rules.getBoolean(UltimateGamerules.ENABLE_ACQUISITION)) {
-            return;
-        }
+
+        // ANY and ALL Ultimates strictly require True Demon Lord or True Hero awakening
         ExistenceStorage existence = existence(player);
         if (existence == null || (!existence.isTrueDemonLord() && !existence.isTrueHero())) {
             return;
@@ -123,6 +134,29 @@ public final class UltimateEvolution {
             }
         }
         return !requirement.mastered().isEmpty();
+    }
+
+    private static void checkUniqueEvolutions(ServerPlayer player, GameRules rules) {
+        ManasSkill plunderer = UniqueShadowSkills.PLUNDERER == null ? null : UniqueShadowSkills.PLUNDERER.get();
+        ManasSkill darkness = ExtraMysticismSkills.DARKNESS_MANIPULATION == null ? null : ExtraMysticismSkills.DARKNESS_MANIPULATION.get();
+        ManasSkill vainglory = UniqueShadowSkills.VAINGLORY == null ? null : UniqueShadowSkills.VAINGLORY.get();
+        if (plunderer != null && darkness != null && vainglory != null
+                && SkillUtils.hasSkill(player, plunderer)
+                && SkillUtils.isSkillMastered(player, plunderer)
+                && SkillUtils.hasSkill(player, darkness)
+                && SkillUtils.isSkillMastered(player, darkness)
+                && !SkillUtils.hasSkill(player, vainglory)) {
+            if (SkillHelper.learnSkill(player, vainglory)) {
+                if (rules.getBoolean(UltimateGamerules.LOSE_UNIQUE)) {
+                    SkillAPI.getSkillsFrom(player).forgetSkill(
+                            plunderer.getRegistryName(),
+                            Component.translatable("mysticism_ultimates.skill.ultimate_upgrade", plunderer.getName(), vainglory.getName())
+                    );
+                }
+                player.displayClientMessage(Component.translatable(
+                        "mysticism_ultimates.skill.acquired", vainglory.getName(), 0L), false);
+            }
+        }
     }
 
     private static ExistenceStorage existence(ServerPlayer player) {
