@@ -67,7 +67,12 @@ public final class MysticismUltimates {
         VicielSkill.register();
         io.github.pok8.mysticismultimates.skill.HadesSkill.register();
         io.github.pok8.mysticismultimates.skill.UrielSkill.register();
+        modBus.addListener((net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent event) -> event.enqueueWork(MysticismUltimates::injectStartingSkills));
+        NeoForge.EVENT_BUS.addListener(MysticismUltimates::onServerAboutToStart);
         NeoForge.EVENT_BUS.addListener(MysticismUltimates::onServerStarting);
+    }
+
+    public static void onServerAboutToStart(net.neoforged.neoforge.event.server.ServerAboutToStartEvent event) {
         injectStartingSkills();
     }
 
